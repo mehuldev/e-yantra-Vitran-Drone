@@ -5,7 +5,7 @@ E-yantra
 Theme: Vitran Drone
 Task: task4
 Purpose: Generate Occupancy Grid Map
-Scale: 1 unit in map = 0.5 m
+Scale: 1 unit in map = 0.2 m
 Team ID : 0583
 Team name : !ABHIMANYU 
 **********************************'''
@@ -151,19 +151,8 @@ def main():
 		my_map.belief_map[x][y] = 1
 		my_map.my_pub.publish(str(x) +' '+ str(y)+' ' + str(my_map.belief_map[x][y]))
 
-	
-	# print(curr_data)
-	# plt.plot(my_map.belief_map)
-	# plt.pcolormesh(my_map.belief_map)
- #    	plt.plot(my_map.belief_map)
- #    	plt.axes().set_aspect('equal')  # set the x and y axes to the same scale
- #    	plt.xticks([])  # remove the tick marks by setting to an empty list
- #    	plt.yticks([])  # remove the tick marks by setting to an empty list
- #    	plt.axes().invert_yaxis()  # invert the y-axis so the first row of data is at the top
- #    	# plt.show()
- #    	plt.pause(1e-17)
-	my_map.rate.sleep()
- #    	rate.sleep()
+	cv2.imshow('map', my_map.belief_map)
+	cv2.waitKey(1)
 
 if __name__ == '__main__':
 	# pause of 4 sec to open and load the gazibo
