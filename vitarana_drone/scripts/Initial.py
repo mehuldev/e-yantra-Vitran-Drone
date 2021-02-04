@@ -3,7 +3,7 @@
 '''**********************************
 E-yantra
 Theme: Vitran Drone
-Task: task3
+Task: task5
 Purpose: Position controller
 Team ID : 0583
 Team name : !ABHIMANYU 
@@ -36,7 +36,7 @@ class Edrone():
 
     def __init__(self):
         # initializing ros node with name position_controller
-        rospy.init_node('position_controller4')
+        rospy.init_node('position_controller5')
 
         # This will contain the current location of Edrone. [latitude, longitude, altitude ]
         # this value is updating each time in gps callback function
