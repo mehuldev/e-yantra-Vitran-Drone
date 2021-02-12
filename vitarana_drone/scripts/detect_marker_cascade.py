@@ -20,6 +20,7 @@ from std_msgs.msg import String,Float64,Float32, Int8
 import matplotlib.pyplot as plt
 import rospkg
 import math
+import time
 
 class image_detection():
 
@@ -34,19 +35,19 @@ class image_detection():
         img_width = 400
         hfov_rad = 1.3962634 
         self.focal_length = (img_width/2)/math.tan(hfov_rad/2)
-        self.curr_marker_id = 0
+        self.curr_marker_id = ""
         self.marker_data = MarkerData()
         # This will contain your image frame from camera
         self.bridge = CvBridge()
         # self.pub = rospy.Publisher('qrValue',String,queue_size=1)
         # self.pub = rospy.Publisher('/edrone/marker_data',Float64,queue_size=1)
         #self.pub = rospy.Publisher('pixValue',Int32MultiArray,queue_size=1)
-        self.rate = rospy.Rate(1)
+        # self.rate = rospy.Rate(1)
         # Subscribing to the camera topic
         self.image_sub = rospy.Subscriber(
             "/edrone/camera/image_raw", Image, self.image_callback)
 
-        rospy.Subscriber("/edrone/curr_marker_id", Int8, self.marker_id_callback)
+        rospy.Subscriber("/edrone/curr_marker_id", String, self.marker_id_callback)
 
         rospack = rospkg.RosPack()
         filepath = rospack.get_path('vitarana_drone')+'/data/cascade.xml'
@@ -78,11 +79,11 @@ class image_detection():
         err_x = err_x*np.cos(self.theta) - err_y*np.sin(self.theta)
         err_y= err_x*np.sin(self.theta) + err_y*np.cos(self.theta)
 
-        self.marker_data.marker_id = self.curr_marker_id
+        self.marker_data.marker_id = ord(self.curr_marker_id[0]) + ord(self.curr_marker_id[1])
         self.marker_data.err_x_m = err_x
         self.marker_data.err_y_m = err_y
         self.marker_data_pub.publish(self.marker_data)
-        self.rate.sleep()
+        # self.rate.sleep()
         # self.err_x_m.publish(err_x)
         # self.err_y_m.publish(err_y)
 
@@ -106,8 +107,8 @@ class image_detection():
                 #data_for_publishing = Int32MultiArray(data = [centre_x, centre_y])
             
             # plt.imshow(cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB))
-            cv2.imshow('image',self.img)
-            cv2.waitKey(1)
+            # cv2.imshow('image',self.img)
+            # cv2.waitKey(1)
             # plt.show()
             # plt.clf()
 
