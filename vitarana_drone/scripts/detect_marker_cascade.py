@@ -15,7 +15,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2
 import numpy as np
 import rospy
-from sensor_msgs.msg import NavSatFix, Imu
+from sensor_msgs.msg import NavSatFix, Imu, LaserScan
 from std_msgs.msg import String,Float64,Float32, Int8
 import matplotlib.pyplot as plt
 import rospkg
@@ -57,17 +57,22 @@ class image_detection():
         # self.err_x_m = rospy.Publisher('/edrone/err_x_m', Float64, queue_size = 1)
         # self.err_y_m = rospy.Publisher('/edrone/err_y_m', Float64, queue_size = 1)
         
-        rospy.Subscriber("/edrone/vertical_distance", Float64, self.vertical_distance_callback)
+        # rospy.Subscriber("/edrone/vertical_distance", Float64, self.vertical_distance_callback)
         rospy.Subscriber("/edrone/yaw", Float64, self.theta_callback)
+        rospy.Subscriber('/edrone/range_finder_bottom', LaserScan, self.range_finder_callback)
         
         rospy.spin()
 
+    def range_finder_callback(self,msg):
+        if(msg.ranges[0] < 50 and msg.ranges[0] >= 0.5):
+            self.vertical_distance = msg.ranges[0]
+        # print(self.vertical_distance)
 
     def marker_id_callback(self, msg):
         self.curr_marker_id = msg.data
 
-    def vertical_distance_callback(self, data):
-        self.vertical_distance = data.data
+    # def vertical_distance_callback(self, data):
+    #     self.vertical_distance = data.data
         
 
     def theta_callback(self, msg):
@@ -118,6 +123,9 @@ class image_detection():
 
 
 if __name__ == '__main__':
+    t = time.time()
+    while(time.time() - t < 10):
+        pass
     try:
         image_dec_obj = image_detection()
     except rospy.ROSInterruptException:
