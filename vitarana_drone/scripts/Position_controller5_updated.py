@@ -672,10 +672,10 @@ def reach_destination(height_correction, hc, position, speed):
             divider = np.sqrt((e_drone.setpoint_final[0] - e_drone.setpoint_initial[0])**2 + (
                 e_drone.setpoint_final[1] - e_drone.setpoint_initial[1])**2)
 
-            if((e_drone.setpoint_location[0] > e_drone.setpoint_final[0]+0.0000200517 or
-                e_drone.setpoint_location[0] < e_drone.setpoint_final[0]-0.0000200517) or
-                    (e_drone.setpoint_location[1] > e_drone.setpoint_final[1]+0.00002007487 or
-                        e_drone.setpoint_location[1] < e_drone.setpoint_final[1]-0.00002007487)):
+            if((e_drone.setpoint_location[0] > e_drone.setpoint_final[0]+0.0000300517 or
+                e_drone.setpoint_location[0] < e_drone.setpoint_final[0]-0.0000300517) or
+                    (e_drone.setpoint_location[1] > e_drone.setpoint_final[1]+0.00003007487 or
+                        e_drone.setpoint_location[1] < e_drone.setpoint_final[1]-0.00003007487)):
 
                 e_drone.setpoint_location[0] = e_drone.drone_location[0] + multiplier*(
                     e_drone.setpoint_final[0] - e_drone.drone_location[0]) / divider
