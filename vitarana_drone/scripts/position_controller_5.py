@@ -130,10 +130,8 @@ class Edrone():
         self.centre_y = -1
         self.vertical_distance = 0
         self.initial_location = [18.9998102845, 72.000142461, 16.757981]
-        self.box = {
-            'A1': [18.9998102845, 72.000142461, 16.757981]
-        }
-        self.patch = {
+        self.grid = {
+            'A1': [18.9998102845, 72.000142461, 16.757981],
             'X1':  [18.9999367615, 72.000142461, 16.757981]
         }
 
@@ -143,7 +141,7 @@ class Edrone():
         self.delivery_location = {}
         self.return_location = {}
         self.visited = {}
-        self.order = []
+        self.visiting_order = []
         with open(filepath) as manifest:
             csvread = csv.reader(manifest)
             for row in csvread:
@@ -830,8 +828,8 @@ def farthest():
     a = 0
     for i in e_drone.delivery_location.keys():
         if(not e_drone.visited[i]):
-            curr = np.sqrt(((e_drone.initial_location[0]-e_drone.delivery_location[i][0])*1.5/0.000013552)**2 + (
-                (e_drone.initial_location[1]-e_drone.delivery_location[i][1])*1.5/0.000014245)**2)
+            curr = np.sqrt(((e_drone.grid[i][0]-e_drone.delivery_location[i][0])*1.5/0.000013552)**2 + (
+                (e_drone.grid[i][1]-e_drone.delivery_location[i][1])*1.5/0.000014245)**2)
             if(curr > a):
                 ans = i
                 a = curr
@@ -845,35 +843,35 @@ def make_box_position():
         for column in range(1, 4):
             i = str(chr(ord('A')+column-1)+str(row))
             if(not i == 'A1'):
-                e_drone.box[i] = [0, 0, 0]
-                e_drone.box[i][0] = e_drone.box["A1"][0] + \
+                e_drone.grid[i] = [0, 0, 0]
+                e_drone.grid[i][0] = e_drone.grid["A1"][0] + \
                     (column-1)*0.000013552
-                e_drone.box[i][1] = e_drone.box["A1"][1] + (row-1)*0.000014245
-                e_drone.box[i][2] = e_drone.box["A1"][2]
+                e_drone.grid[i][1] = e_drone.grid["A1"][1] + (row-1)*0.000014245
+                e_drone.grid[i][2] = e_drone.grid["A1"][2]
 
     for row in range(1, 4):
         for column in range(1, 4):
             i = str(chr(ord('X')+column-1)+str(row))
             if(not i == 'X1'):
-                e_drone.patch[i] = [0, 0, 0]
-                e_drone.patch[i][0] = e_drone.patch["X1"][0] + \
+                e_drone.grid[i] = [0, 0, 0]
+                e_drone.grid[i][0] = e_drone.grid["X1"][0] + \
                     (column-1)*0.000013552
-                e_drone.patch[i][1] = e_drone.patch["X1"][1] + \
+                e_drone.grid[i][1] = e_drone.grid["X1"][1] + \
                     (row-1)*0.000014245
-                e_drone.patch[i][2] = e_drone.patch["X1"][2]
+                e_drone.grid[i][2] = e_drone.grid["X1"][2]
 
 
-def determine_order():
+def determine_visiting_order():
     for _ in range(9):
-        e_drone.order.append(farthest())
-        e_drone.order.append(
-            nearest(e_drone.delivery_location[e_drone.order[-1]]))
+        e_drone.visiting_order.append(farthest())
+        e_drone.visiting_order.append(
+            nearest(e_drone.delivery_location[e_drone.visiting_order[-1]]))
 
 
-def hover():
+def hover(time_limit):
     # To land the drone on marker
     t = time.time()
-    while time.time() - t < 0.5:
+    while time.time() - t < time_limit:
         e_drone.rpyt_cmd.rcRoll = 1500
         e_drone.rpyt_cmd.rcPitch = 1500
         e_drone.rpyt_cmd.rcThrottle = 1000
@@ -893,6 +891,24 @@ def marker_detection():
         if(e_drone.centre_x == prev_x or e_drone.centre_y == prev_y):
             print("not detected")
             count2 += 1
+            # this piece of code will enable the drone to search the landing pad on the roof, it will use spiral search.
+            if(count2%5 == 0):
+                count2 =0
+
+                if(count3%4 ==0 ):
+                    e_drone.setpoint_final = [e_drone.drone_location[0] , e_drone.drone_location[1] - (count3+1)*0.0000047487*5, e_drone.drone_location[-1] ]
+                elif(count3%4 ==1 ):
+                    e_drone.setpoint_final = [e_drone.drone_location[0] + (count3+1)*0.000004517*5, e_drone.drone_location[1], e_drone.drone_location[-1] ]
+                elif(count3%4 ==2 ):
+                    e_drone.setpoint_final = [e_drone.drone_location[0], e_drone.drone_location[1] + (count3+1)*0.0000047487*5, e_drone.drone_location[-1] ]
+                elif(count3%4 ==3 ):
+                    e_drone.setpoint_final = [e_drone.drone_location[0] - (count3+1)*0.000004517*5, e_drone.drone_location[1] , e_drone.drone_location[-1] ]
+                
+                reach_short_destination(height_correction = False, 
+                    position = False, speed = 100, marker_detect = True)
+                stablize_drone(time_limit = 1)
+                count3 +=1
+
         else:
             x += e_drone.centre_x
             y += e_drone.centre_y
@@ -900,7 +916,7 @@ def marker_detection():
 
         prev_x, prev_y = e_drone.centre_x, e_drone.centre_y
 
-        stablize_drone(time_limit=0.1, position=False, speed=100)
+        stablize_drone(time_limit=1, position=False, speed=100)
 
     x /= count
     y /= count
@@ -919,114 +935,46 @@ def marker_detection():
 
 def main():
     make_box_position()
-    determine_order()
-    # box_id = 1
-    i = 0
-    while(i < len(e_drone.order)):
-        box_id = e_drone.order[i]
+    determine_visiting_order()
+    for box_id in e_drone.visiting_order:
+        # box_id = e_drone.visiting_order[i]
         print(box_id)
         e_drone.current_marker_id = box_id
-        e_drone.setpoint_final = e_drone.box[box_id]
-        reach_short_destination(height_correction=6,
-                                position=False, speed=100, marker_detect=False)
-        # e_drone.setpoint_final = e_drone.return_location[box_id]
-        # reach_destination(height_correction = 6, hc = 1, position = False, speed = 100)
 
-        # reach_short_destination(height_correction = True, position = False, speed = 100)
-        stablize_drone(time_limit=3, position=False, speed=100)
-        t = time.time()
-        while time.time() - t < 1:
-            e_drone.rpyt_cmd.rcRoll = 1500
-            e_drone.rpyt_cmd.rcPitch = 1500
-            e_drone.rpyt_cmd.rcThrottle = 1000
-            e_drone.rpyt_pub.publish(e_drone.rpyt_cmd)
-        gripper_active(1)
-        e_drone.setpoint_final = e_drone.delivery_location[box_id]
-        reach_destination(height_correction=11, hc=0,
-                          position=False, speed=100)
-        # To settle on the destination
-        stablize_drone(time_limit=3, position=False, speed=100)
-        marker_detection()
-        # e_drone.setpoint_final = e_drone.setpoint_final[:-1] + [e_drone.setpoint_final[-1] + 3]
-        # e_drone.setpoint_final = e_drone.setpoint_final[:-1] + [15]
-        # reach_destination(flag = 0, speed = 2)
-        # stablize_drone(time_limit = 5)
+        #For delivery
+        if(box_id < 'D'):
+            e_drone.setpoint_final = e_drone.grid[box_id]
+            reach_short_destination(height_correction=6,
+                                    position=False, speed=100, marker_detect=False)
+            stablize_drone(time_limit=3, position=False, speed=100)
+            hover(time_limit = 1)
+            gripper_active(1)
+            e_drone.setpoint_final = e_drone.delivery_location[box_id]
+            reach_destination(height_correction=11, hc=0,
+                              position=False, speed=100)
+            # To settle on the destination
+            stablize_drone(time_limit=3, position=False, speed=100)
+            marker_detection()
+            hover(time_limit = 0.5)
+            gripper_active(0)
 
-   #      rospy.loginfo("Initiating marker detection")
-   #      if(box_id[0] < 'D'):
-   #          count = 0
-   #          count2 = 0
-   #          count3 = 0
-   #          x, y = 0, 0
-   #          prev_x, prev_y = e_drone.centre_x, e_drone.centre_y
+        #For returns
+        else:
+            e_drone.setpoint_final = e_drone.return_location[box_id]
+            reach_destination(height_correction=6, hc=1, position=False, speed=100)
+            stablize_drone(time_limit=3, position=False, speed=100)
+            hover(time_limit = 1)
+            gripper_active(1)
+            e_drone.setpoint_final = e_drone.grid[box_id]
+            print(box_id)
+            print(e_drone.setpoint_final)
+            reach_destination(height_correction=10, hc=1,
+                              position=False, speed=100)
+            stablize_drone(time_limit=3, position=False, speed=100)
+            hover(time_limit = 0.5)
+            gripper_active(0)
 
-   #          while(count < 3):
-   #              print(e_drone.centre_x, e_drone.centre_y)
-   #              if(e_drone.centre_x == prev_x or e_drone.centre_y == prev_y):
-   #                  print("not detected")
-   #                  count2 += 1
-   #              else:
-   #                  x += e_drone.centre_x
-   #                  y += e_drone.centre_y
-   #                  count += 1
-
-   #              prev_x, prev_y = e_drone.centre_x, e_drone.centre_y
-
-   #              stablize_drone(time_limit = 0.5, position = False, speed = 100)
-
-   #          x /= count
-   #          y /= count
-
-   #          if(box_id[0] < 'D'):
-   #              # added offset of camera to y coordinate
-   #              e_drone.setpoint_final = [
-   #                  x, y-0.0000033238333, e_drone.delivery_location[box_id][2]+0.2]
-   #          else:
-   #              e_drone.setpoint_final = [
-   #                  x, y,16.757981]
-   #          print("marker found at ", e_drone.setpoint_final)
-   #          reach_short_destination(height_correction = False, position = False, speed = 100,marker_detect=True)
-   #          # stablize_drone(time_limit = 2, position = False, speed = 100)
-   #          rospy.loginfo("Reached marker" + str(e_drone.current_marker_id))
-   #      else:
-   #          e_drone.setpoint_final = e_drone.setpoint_final[:-1] + [16.757981]
-   #          reach_short_destination(height_correction = False, position = False, speed = 100,marker_detect=False)
-
-   # # To land the drone on marker
-   #      t = time.time()
-   #      while time.time() - t < 0.5:
-   #          e_drone.rpyt_cmd.rcRoll = 1500
-   #          e_drone.rpyt_cmd.rcPitch = 1500
-   #          e_drone.rpyt_cmd.rcThrottle = 1000
-   #          e_drone.rpyt_pub.publish(e_drone.rpyt_cmd)
-        hover()
-        gripper_active(0)
-        i += 1
-        box_id = e_drone.order[i]
-        e_drone.setpoint_final = e_drone.return_location[box_id]
-        reach_destination(height_correction=6, hc=1, position=False, speed=100)
-        stablize_drone(time_limit=3, position=False, speed=100)
-        hover()
-        gripper_active(1)
-        e_drone.setpoint_final = e_drone.patch[box_id]
-        print(box_id)
-        print(e_drone.setpoint_final)
-        reach_destination(height_correction=10, hc=1,
-                          position=False, speed=100)
-        # stablize_drone(time_limit=5, position=False, speed=100)
-        t = time.time()
-        # while time.time() - t < 1:
-        #     e_drone.rpyt_cmd.rcRoll = 1500
-        #     e_drone.rpyt_cmd.rcPitch = 1500
-        #     e_drone.rpyt_cmd.rcThrottle = 1000
-        #     e_drone.rpyt_pub.publish(e_drone.rpyt_cmd)
-        gripper_active(0)
-        i += 1
-
-    e_drone.rpyt_cmd.rcRoll = 1500
-    e_drone.rpyt_cmd.rcPitch = 1500
-    e_drone.rpyt_cmd.rcThrottle = 1000
-    e_drone.rpyt_pub.publish(e_drone.rpyt_cmd)
+    hover(time_limit = 1)
 
 
 if __name__ == '__main__':
