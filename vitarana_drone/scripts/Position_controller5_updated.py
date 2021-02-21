@@ -122,10 +122,10 @@ class Edrone():
 
         # initializing Kp, Kd and ki for velocity [latitude, longitude, altitude] after tunning
         # self.Kp_v = [2.1495, 2.1495, 900]  # 650]
-        self.Kp_v = [2.153, 2.153, 900]  # 650]
+        self.Kp_v = [2.156, 2.156, 900]  # 650]
         self.Ki_v = [0, 0, 0]
         # self.Ki_v = [0.00006, 0.00006, 0]
-        self.Kd_v = [138, 138, 510]  # 25]
+        self.Kd_v = [146, 146, 500]  # 25]
 
         # Declaring variables for marker midpoint
         self.centre_x = -1
@@ -375,7 +375,7 @@ class Edrone():
                         self.current_velocity[i]
                 else:
                     self.error_value[i] = self.setpoint_velocity[i] - \
-                        1.7*self.current_velocity[i]
+                        1.4*self.current_velocity[i]
                 self.sum_error_value[i] = self.sum_error_value[i] + \
                     self.error_value[i]
                 self.change_in_error_value[i] = self.error_value[i] - \
@@ -469,10 +469,10 @@ def is_at_setpoint3D(setpoint):
 
 # Function to determine if the drone is at setpoint without taking into account the altitude
 def is_at_setpoint2D(setpoint):
-    return ((e_drone.drone_location[0] > setpoint[0]+0.0000045173/5 or
-             e_drone.drone_location[0] < setpoint[0]-0.0000045173/5) or
-            (e_drone.drone_location[1] > setpoint[1]+0.0000047483/5 or
-             e_drone.drone_location[1] < setpoint[1]-0.0000047483/5))
+    return ((e_drone.drone_location[0] > setpoint[0]+0.0000045173/4 or
+             e_drone.drone_location[0] < setpoint[0]-0.0000045173/4) or
+            (e_drone.drone_location[1] > setpoint[1]+0.0000047483/4 or
+             e_drone.drone_location[1] < setpoint[1]-0.0000047483/4))
 
 
 # Function to avoid obstacles
@@ -632,9 +632,9 @@ def reach_short_destination(height_correction, position, speed, marker_detect):
             e_drone.drone_location[2]]
         while is_at_setpoint2D(e_drone.setpoint_location):
             e_drone.pid(position=position, speed=speed)
-            time.sleep(0.03)
+            time.sleep(0.04)
 
-    stablize_drone(time_limit=3, position=position, speed=speed)
+    stablize_drone(time_limit=2, position=position, speed=speed)
 
     e_drone.setpoint_location = e_drone.setpoint_final
     while is_at_setpoint3D(e_drone.setpoint_location):
@@ -643,7 +643,7 @@ def reach_short_destination(height_correction, position, speed, marker_detect):
 
 
 # this function will take the drone to the set point
-def reach_destination(height_correction, hc, position, speed):
+def reach_destination(height_correction, hc, position, speed,delivery):
     flag = 0
     if(not position):
         # if(height_correction):
@@ -654,7 +654,7 @@ def reach_destination(height_correction, hc, position, speed):
         #         time.sleep(0.05)
 
         e_drone.setpoint_location = e_drone.drone_location[:-1] + [
-            e_drone.drone_location[-1]+3]
+            e_drone.drone_location[-1]+4]
         t = time.time()
         
         while time.time() - t < 1:
@@ -669,7 +669,6 @@ def reach_destination(height_correction, hc, position, speed):
         e_drone.setpoint_location[2] = e_drone.setpoint_initial[2] + height_correction
         multiplier = 0.00022
         # multiplier = 0.000011*20
-
 
         while(is_at_setpoint2D(e_drone.setpoint_final)):
             e_drone.pid(position=position, speed=speed)
@@ -691,18 +690,21 @@ def reach_destination(height_correction, hc, position, speed):
             else:
                 e_drone.setpoint_location[0] = e_drone.setpoint_final[0]
                 e_drone.setpoint_location[1] = e_drone.setpoint_final[1]
+            
+            if(delivery):
+                e_drone.setpoint_location[2] = max((e_drone.setpoint_location[2] - 0.03),e_drone.setpoint_final[2] + 7)
 
             # print(e_drone.laser_negative_latitude,e_drone.laser_positive_latitude,e_drone.laser_negative_longitude,e_drone.laser_positive_longitude)
             flag2 = 0
 
-            while((e_drone.laser_negative_latitude <= 6 and e_drone.laser_negative_latitude >= 0.5 or
-                   e_drone.laser_negative_longitude <= 6 and e_drone.laser_negative_longitude >= 0.5 or
-                   e_drone.laser_positive_latitude <= 6 and e_drone.laser_positive_latitude >= 0.5 or
-                   e_drone.laser_positive_longitude <= 6 and e_drone.laser_positive_longitude >= 0.5) and not flag):
+            while((e_drone.laser_negative_latitude <= 4.3 and e_drone.laser_negative_latitude >= 0.5 or
+                   e_drone.laser_negative_longitude <= 4.3 and e_drone.laser_negative_longitude >= 0.5 or
+                   e_drone.laser_positive_latitude <= 4.3 and e_drone.laser_positive_latitude >= 0.5 or
+                   e_drone.laser_positive_longitude <= 4.3 and e_drone.laser_positive_longitude >= 0.5) and not flag):
 
                 print("in while")
-                if(np.sqrt(e_drone.current_velocity[0]**2 + e_drone.current_velocity[1]**2 + e_drone.current_velocity[2]**2) >= 10):
-                    while(np.sqrt(e_drone.current_velocity[0]**2 + e_drone.current_velocity[1]**2 + e_drone.current_velocity[2]**2) >= 1):
+                if(np.sqrt(e_drone.current_velocity[0]**2 + e_drone.current_velocity[1]**2 + e_drone.current_velocity[2]**2) >= 5):
+                    while(np.sqrt(e_drone.current_velocity[0]**2 + e_drone.current_velocity[1]**2 + e_drone.current_velocity[2]**2) >= 0.8):
                         e_drone.pid(position=position, speed=speed)
                         time.sleep(0.07)
                         e_drone.setpoint_location[0] = e_drone.drone_location[0] - 0.0000020*100 * e_drone.current_velocity[0]/np.sqrt(
@@ -722,12 +724,8 @@ def reach_destination(height_correction, hc, position, speed):
                 # reach_destination(height_correction=3,hc=0,position=position,speed=speed)
                 # break
                 print("in flag")
-                t = time.time()
-                while time.time() - t < 1:
-                    e_drone.pid(position=position, speed=speed)
-                    time.sleep(0.05)
                 e_drone.setpoint_location = e_drone.drone_location[:-1] + [
-                    e_drone.drone_location[-1]+1]
+                    e_drone.setpoint_location[2]+2]
                 t = time.time()
                 while time.time() - t < 1:
                     e_drone.pid(position=position, speed=speed)
@@ -740,10 +738,10 @@ def reach_destination(height_correction, hc, position, speed):
                     divider = np.sqrt((e_drone.setpoint_final[0] - e_drone.setpoint_initial[0])**2 + (
                         e_drone.setpoint_final[1] - e_drone.setpoint_initial[1])**2)
 
-                    if((e_drone.setpoint_location[0] > e_drone.setpoint_final[0]+0.0000300517 or
-                        e_drone.setpoint_location[0] < e_drone.setpoint_final[0]-0.0000300517) or
-                            (e_drone.setpoint_location[1] > e_drone.setpoint_final[1]+0.00003007487 or
-                                e_drone.setpoint_location[1] < e_drone.setpoint_final[1]-0.00003007487)):
+                    if((e_drone.setpoint_location[0] > e_drone.setpoint_final[0]+0.0000340517 or
+                        e_drone.setpoint_location[0] < e_drone.setpoint_final[0]-0.0000340517) or
+                            (e_drone.setpoint_location[1] > e_drone.setpoint_final[1]+0.00003407487 or
+                                e_drone.setpoint_location[1] < e_drone.setpoint_final[1]-0.00003407487)):
 
                         e_drone.setpoint_location[0] = e_drone.drone_location[0] + multiplier*(
                             e_drone.setpoint_final[0] - e_drone.drone_location[0]) / divider
@@ -755,8 +753,8 @@ def reach_destination(height_correction, hc, position, speed):
                         e_drone.setpoint_location[1] = e_drone.setpoint_final[1]
 
                     #avoid_obstacle(position = position, speed = speed)
-
-        stablize_drone(time_limit=2, position=position, speed=speed)
+        if not delivery:
+            stablize_drone(time_limit=2, position=position, speed=speed)
 
         if(hc):
             e_drone.setpoint_location = e_drone.setpoint_final[:-1] + [
@@ -889,38 +887,38 @@ def hover():
 def marker_detection():
     rospy.loginfo("Initiating marker detection")
     count = 0
-    count2 = 0
+    count2 = 1
     count3 = 0
     x, y = 0, 0
-    prev_x, prev_y = e_drone.centre_x, e_drone.centre_y
+    prev_x, prev_y = -1,-1
 
     while(count < 3):
         print(e_drone.centre_x, e_drone.centre_y)
         if(e_drone.centre_x == prev_x or e_drone.centre_y == prev_y):
             print("not detected")
             count2 += 1
-        else:
+        elif(prev_x!=-1):
             x += e_drone.centre_x
             y += e_drone.centre_y
             count += 1
 
         prev_x, prev_y = e_drone.centre_x, e_drone.centre_y
-        if(count2%2==0):
-            e_drone.setpoint_location[2] = e_drone.drone_location[2] - 1  
+        if(count2%3==0 and count==0):
+            e_drone.setpoint_location[2] = e_drone.drone_location[2] + 4  
             t = time.time()
-            while time.time() -t <1:
+            while time.time() -t <2:
                 e_drone.pid(position=False, speed=100)
                 # time.sleep(0.01)  
             count2 = 1      
 
-        stablize_drone(time_limit=0.01, position=False, speed=100)
+        stablize_drone(time_limit=0.005, position=False, speed=100)
 
     x /= count
     y /= count
 
     # added offset of camera to y coordinate
     e_drone.setpoint_final = [
-        x, y-0.0000033238333, e_drone.drone_location[2] - e_drone.vertical_distance + 1.2]
+        x, y-0.0000033238333, e_drone.drone_location[2] - e_drone.vertical_distance + 0.6]
     print("marker found at ", e_drone.setpoint_final)
     reach_short_destination(height_correction=False,
                             position=False, speed=100, marker_detect=True)
@@ -940,13 +938,13 @@ def main():
         print(box_id)
         e_drone.current_marker_id = box_id
         e_drone.setpoint_final = e_drone.box[box_id]
-        reach_short_destination(height_correction=6,
+        reach_short_destination(height_correction=4,
                                 position=False, speed=100, marker_detect=False)
         # e_drone.setpoint_final = e_drone.return_location[box_id]
         # reach_destination(height_correction = 6, hc = 1, position = False, speed = 100)
 
         # reach_short_destination(height_correction = True, position = False, speed = 100)
-        stablize_drone(time_limit=2, position=False, speed=100)
+        stablize_drone(time_limit=1, position=False, speed=100)
         t = time.time()
         while time.time() - t < 0.5:
             e_drone.rpyt_cmd.rcRoll = 1500
@@ -955,8 +953,8 @@ def main():
             e_drone.rpyt_pub.publish(e_drone.rpyt_cmd)
         gripper_active(1)
         e_drone.setpoint_final = e_drone.delivery_location[box_id]
-        reach_destination(height_correction=11, hc=0,
-                          position=False, speed=100)
+        reach_destination(height_correction=10, hc=0,
+                          position=False, speed=100,delivery=True)
         # To settle on the destination
         stablize_drone(time_limit=1, position=False, speed=100)
         marker_detection()
@@ -1017,15 +1015,15 @@ def main():
         i += 1
         box_id = e_drone.order[i]
         e_drone.setpoint_final = e_drone.return_location[box_id]
-        reach_destination(height_correction=6, hc=1, position=False, speed=100)
-        stablize_drone(time_limit=3, position=False, speed=100)
+        reach_destination(height_correction=6, hc=1, position=False, speed=100,delivery=False)
+        stablize_drone(time_limit=2, position=False, speed=100)
         hover()
         gripper_active(1)
         e_drone.setpoint_final = e_drone.patch[box_id]
         print(box_id)
         print(e_drone.setpoint_final)
         reach_destination(height_correction=10, hc=1,
-                          position=False, speed=100)
+                          position=False, speed=100,delivery=True)
         # stablize_drone(time_limit=5, position=False, speed=100)
         # t = time.time()
         # while time.time() - t < 1:
