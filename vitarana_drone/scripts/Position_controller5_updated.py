@@ -122,10 +122,10 @@ class Edrone():
 
         # initializing Kp, Kd and ki for velocity [latitude, longitude, altitude] after tunning
         # self.Kp_v = [2.1495, 2.1495, 900]  # 650]
-        self.Kp_v = [2.156, 2.156, 900]  # 650]
+        self.Kp_v = [2.157, 2.157, 900]  # 650]
         self.Ki_v = [0, 0, 0]
         # self.Ki_v = [0.00006, 0.00006, 0]
-        self.Kd_v = [146, 146, 500]  # 25]
+        self.Kd_v = [152, 152, 500]  # 25]
 
         # Declaring variables for marker midpoint
         self.centre_x = -1
@@ -704,9 +704,10 @@ def reach_destination(height_correction, hc, position, speed,delivery):
 
                 print("in while")
                 if(np.sqrt(e_drone.current_velocity[0]**2 + e_drone.current_velocity[1]**2 + e_drone.current_velocity[2]**2) >= 5):
-                    while(np.sqrt(e_drone.current_velocity[0]**2 + e_drone.current_velocity[1]**2 + e_drone.current_velocity[2]**2) >= 0.8):
+                    while(np.sqrt(e_drone.current_velocity[0]**2 + e_drone.current_velocity[1]**2 + e_drone.current_velocity[2]**2) >= 2.5):
+                        print('in control')
                         e_drone.pid(position=position, speed=speed)
-                        time.sleep(0.07)
+                        time.sleep(0.05)
                         e_drone.setpoint_location[0] = e_drone.drone_location[0] - 0.0000020*100 * e_drone.current_velocity[0]/np.sqrt(
                             e_drone.current_velocity[0]**2 + e_drone.current_velocity[1]**2)
                         e_drone.setpoint_location[1] = e_drone.drone_location[1] - 0.0000020*100 * e_drone.current_velocity[1]/np.sqrt(
