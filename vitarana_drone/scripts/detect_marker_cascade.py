@@ -84,7 +84,7 @@ class image_detection():
         err_x = err_x*np.cos(self.theta) - err_y*np.sin(self.theta)
         err_y= err_x*np.sin(self.theta) + err_y*np.cos(self.theta)
 
-        self.marker_data.marker_id = ord(self.curr_marker_id[0]) + ord(self.curr_marker_id[1])
+        self.marker_data.marker_id = 1
         self.marker_data.err_x_m = err_x
         self.marker_data.err_y_m = err_y
         self.marker_data_pub.publish(self.marker_data)
@@ -112,8 +112,8 @@ class image_detection():
                 #data_for_publishing = Int32MultiArray(data = [centre_x, centre_y])
             
             # plt.imshow(cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB))
-            # cv2.imshow('image',self.img)
-            # cv2.waitKey(1)
+            cv2.imshow('image',self.img)
+            cv2.waitKey(1)
             # plt.show()
             # plt.clf()
 
