@@ -915,11 +915,23 @@ def marker_detection():
 
 
 def generate_csv():
-   # print("generate")
-    with open('sequenced_manifest.csv', 'w') as file:
-        writer = csv.writer(file)
-        writer.writerows(e_drone.csvrow)
-
+    rospack = rospkg.RosPack()
+    filepath = rospack.get_path('vitarana_drone')+'/scripts/sequenced_manifest_original.csv'
+    with open(filepath,'w') as f:
+        thewriter=csv.writer(f)
+        i=0
+        #print("here")
+        while(i < len(e_drone.order)):
+            box_id = e_drone.order[i]
+            dest = e_drone.delivery_location[box_id]
+            dest_seperated = str(dest[0]) + ';' + str(dest[1]) + ';' + str(dest[2])
+            thewriter.writerow(['DELIVERY',box_id,dest_seperated])
+            i += 1
+            box_id = e_drone.order[i]
+            dest = e_drone.return_location[box_id]
+            dest_seperated = str(dest[0]) + ';' + str(dest[1]) + ';' + str(dest[2])
+            thewriter.writerow(['RETURN',dest_seperated,box_id])
+            i+=1
 # main function, it will move the drone at all three points to reach the destination.
 
 
@@ -927,6 +939,7 @@ def main():
     print(e_drone.drone_location)
     make_box_position()
     determine_order()
+    generate_csv()
     # box_id = 1
     i = 0
     while(i < len(e_drone.order)):
@@ -976,8 +989,7 @@ def main():
                           position=False, speed=100, delivery=True)
         gripper_active(0)
         i += 1
-
-    generate_csv()
+        
     e_drone.setpoint_final = e_drone.initial_location
     reach_destination(height_correction=4, hc=1,
                       position=False, speed=100, delivery=False)
