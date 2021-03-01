@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-'''**********************************
-E-yantra
-Theme: Vitran Drone
-Task: task5
-Purpose: Attitude controller
-Team ID : 0583
-Team name : !ABHIMANYU 
-**********************************'''
+'''
+# Team ID:          0583
+# Theme:            VD
+# Author List:      Purushotam kumar Agrawal, Mehul Singhal, Anurag Gupta, Abhishek Pathak
+# Filename:         AttitudeController5 
+# Functions:        class Edrone()
+# Global variables: none
+'''
 
 # Importing the required libraries
 from vitarana_drone.msg import *
@@ -22,6 +22,24 @@ import tf
 class Edrone():
     """docstring for Edrone"""
     def __init__(self):
+        '''
+        Purpose:
+        ---
+        init function of Edrone class
+
+        Input Arguments:
+        ---
+        self
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        none
+        '''
+
         rospy.init_node('attitude_controller')  # initializing ros node with name attitude_controller
 
         # This will contain the current orientation of eDrone in quaternion format. [x,y,z,w]
@@ -87,45 +105,157 @@ class Edrone():
         # rospy.Subscriber('/pid_tuning_yaw', PidTune, self.yaw_set_pid)
 
 
-    # Imu callback function. The function gets executed each time when imu publishes /edrone/imu/data
     def imu_callback(self, msg):
+        '''
+        Purpose:
+        ---
+        Call back fuction for IMU
+
+        Input Arguments:
+        ---
+        self
+        msg : [dictionary]
+            contains the data by IMU sensor
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.imu_callback
+        '''
+
         self.drone_orientation_quaternion[0] = msg.orientation.x
         self.drone_orientation_quaternion[1] = msg.orientation.y
         self.drone_orientation_quaternion[2] = msg.orientation.z
         self.drone_orientation_quaternion[3] = msg.orientation.w
 
-     
-    # drone cmd callback function. The function gets executed each time when edrone_cmd publishes /drone_command
+    
     def drone_command_callback(self, msg):
+        '''
+        Purpose:
+        ---
+        Call back fuction for drone command. the vaues of roll, pitch, yaw, throttle
+
+        Input Arguments:
+        ---
+        self
+        msg : [dictionary]
+            contains the data by IMU sensor
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.drone_command_callback
+        '''
+
         self.setpoint_cmd[0] = msg.rcRoll
         self.setpoint_cmd[1] = msg.rcPitch
         self.setpoint_cmd[2] = msg.rcYaw
         self.set_throttle = msg.rcThrottle
 
 
-    # Callback function for /pid_tuning_roll. This function gets executed each time when /tune_pid publishes /pid_tuning_roll
     def roll_set_pid(self, roll):
+        '''
+        Purpose:
+        ---
+        Call back fuction for roll_set_pid
+
+        Input Arguments:
+        ---
+        self
+        roll : [dictionary]
+            contains the marker data published by pid sliders
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.roll_set_pid
+        '''
+
         self.Kp[0] = roll.Kp * 0.06  
         self.Ki[0] = roll.Ki * 0.008
         self.Kd[0] = roll.Kd * 0.3
 
 
-    # Callback function for /pid_tuning_pitch. This function gets executed each time when /tune_pid publishes /pid_tuning_pitch
     def pitch_set_pid(self, pitch):
+        '''
+        Purpose:
+        ---
+        Call back fuction for pitch_set_pid
+
+        Input Arguments:
+        ---
+        self
+        pitch : [dictionary]
+            contains the marker data published by pid sliders
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.pitch_set_pid
+        '''
+
         self.Kp[1] = pitch.Kp * 0.06  
         self.Ki[1] = pitch.Ki * 0.008
         self.Kd[1] = pitch.Kd * 0.3
 
 
-    # Callback function for /pid_tuning_yaw. This function gets executed each time when /tune_pid publishes /pid_tuning_yaw
     def yaw_set_pid(self, yaw):
+        '''
+        Purpose:
+        ---
+        Call back fuction for yaw_set_pid
+
+        Input Arguments:
+        ---
+        self
+        yaw : [dictionary]
+            contains the marker data published by pid sliders
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.yaw_set_pid
+        '''
+
         self.Kp[2] = yaw.Kp * 6  
         self.Ki[2] = yaw.Ki * 0.008
         self.Kd[2] = yaw.Kd * 3
     
 
-    # this function is containing all the pid equation to control the attitude of the drone
     def pid(self):
+        '''
+        Purpose:
+        ---
+        The PID loop
+
+        Input Arguments:
+        ---
+        none
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        e_drone.pid()
+        '''
+
         # converting the current orientations from quaternion to euler angles 
         (self.drone_orientation_euler[1], self.drone_orientation_euler[0], self.drone_orientation_euler[2]) = tf.transformations.euler_from_quaternion([self.drone_orientation_quaternion[0], self.drone_orientation_quaternion[1], self.drone_orientation_quaternion[2], self.drone_orientation_quaternion[3]])
         
