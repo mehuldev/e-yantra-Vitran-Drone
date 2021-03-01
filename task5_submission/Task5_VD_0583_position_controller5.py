@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 
-'''**********************************
-E-yantra
-Theme: Vitran Drone
-Task: task5
-Purpose: Position controller
-Team ID : 0583
-Team name : !ABHIMANYU 
-**********************************'''
+'''
+# Team ID:          0583
+# Theme:            VD
+# Author List:      Purushotam kumar Agrawal, Mehul Singhal, Anurag Gupta, Abhishek Pathak
+# Filename:         PositionController5 
+# Functions:        class Edrone(), gripper_active(state), is_at_setpoint3D(setpoint), is_at_setpoint2D(setpoint), stablize_drone(time_limit, position, speed)
+                    stablize_drone(time_limit, position, speed), avoid_obstacle(position, speed), avoid_obstacle_new(position, speed), reach_short_destination(height_correction, position, speed, marker_detect)
+                    reach_destination(height_correction, hc, position, speed, delivery), nearest(src), farthest(), make_box_position(), determine_order()
+                    hover(), marker_detection(), generate_csv(), main()
+
+# Global variables: none
+'''
 
 # Importing the required libraries
 from vitarana_drone.msg import *
@@ -35,6 +39,25 @@ class Edrone():
     """docstring for Edrone"""
 
     def __init__(self):
+
+        '''
+        Purpose:
+        ---
+        init function of Edrone class
+
+        Input Arguments:
+        ---
+        self
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        none
+        '''
+
         # initializing ros node with name position_controller
         rospy.init_node('position_controller5')
 
@@ -211,23 +234,37 @@ class Edrone():
         # Subscribing to /edrone/gps, /pid_tuning_yawyawroll, /pid_tuning_pitch, /pid_tuning_yaw {used these GUIs only to tune ;-) }
         rospy.Subscriber('/edrone/gps', NavSatFix, self.gps_callback)
         rospy.Subscriber('/edrone/imu/data', Imu, self.imu_callback)
-        rospy.Subscriber('/edrone/gps_velocity',
-                         Vector3Stamped, self.velocity_callback)
-        rospy.Subscriber('/edrone/range_finder_top', LaserScan,
-                         self.range_finder_top_callback)
-        rospy.Subscriber('/edrone/range_finder_bottom',
-                         LaserScan, self.range_finder_bottom_callback)
+        rospy.Subscriber('/edrone/gps_velocity', Vector3Stamped, self.velocity_callback)
+        rospy.Subscriber('/edrone/range_finder_top', LaserScan, self.range_finder_top_callback)
+        rospy.Subscriber('/edrone/range_finder_bottom', LaserScan, self.range_finder_bottom_callback)
         # rospy.Subscriber('/pid_tuning_roll', PidTune, self.roll_set_pid)        # for latitude
         # rospy.Subscriber('/pid_tuning_pitch', PidTune, self.pitch_set_pid)      # for longitude
         # rospy.Subscriber('/pid_tuning_yaw', PidTune, self.yaw_set_pid)          # for altitude
         #rospy.Subscriber('/qrValue', String, self.qr_callback)
         #rospy.Subscriber('/pixValue', Int32MultiArray, self.marker_callback)
-        rospy.Subscriber('/edrone/marker_data', MarkerData,
-                         self.marker_data_callback)
+        rospy.Subscriber('/edrone/marker_data', MarkerData, self.marker_data_callback)
 
-    # Callback function for LaserScan of different range finders
 
     def range_finder_top_callback(self, msg):
+        '''
+        Purpose:
+        ---
+        Call back fuction for range finder sensor
+
+        Input Arguments:
+        ---
+        self
+        msg : [list]
+            contains the ranges by the sensor
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.range_finder_top_callback
+        '''
         if(self.drone_orientation_euler[2] < np.pi/4 and self.drone_orientation_euler[2] > -np.pi/4):
             self.laser_negative_longitude, self.laser_positive_latitude, self.laser_positive_longitude, self.laser_negative_latitude, _ = msg.ranges
 
@@ -243,14 +280,52 @@ class Edrone():
         # print(self.laser_negative_latitude, self.laser_positive_latitude, self.laser_positive_longitude, self.laser_negative_longitude)
         # print(self.drone_orientation_euler)
 
+
     def range_finder_bottom_callback(self, msg):
+        '''
+        Purpose:
+        ---
+        Call back fuction for range finder bottom sensor
+
+        Input Arguments:
+        ---
+        self
+        msg : [list]
+            contains the ranges by the sensor
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.range_finder_bottom_callback
+        '''
         if(msg.ranges[0] < 50 and msg.ranges[0] >= 0.5):
             self.vertical_distance = msg.ranges[0]
         # print(self.vertical_distance)
 
-    # Gets Marker corrdinates in drone frame
-
+    
     def marker_data_callback(self, marker_data):
+        '''
+        Purpose:
+        ---
+        Call back fuction for marker_data
+
+        Input Arguments:
+        ---
+        self
+        marker_data : [dictionary]
+            contains the marker data published by detectMarker node
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.marker_data_callback
+        '''
         self.centre_x = self.drone_location[0] + \
             marker_data.err_x_m*0.0000045173*2
         # self.centre_x = self.drone_location[0] + self.centre_x
@@ -258,9 +333,28 @@ class Edrone():
             marker_data.err_y_m*0.0000047483*2
         # self.centre_y = self.drone_location[1] - self.centre_y
 
-    # Imu callback function. The function gets executed each time when imu publishes /edrone/imu/data
 
     def imu_callback(self, msg):
+        '''
+        Purpose:
+        ---
+        Call back fuction for IMU
+
+        Input Arguments:
+        ---
+        self
+        msg : [dictionary]
+            contains the data by IMU sensor
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.imu_callback
+        '''
+
         self.drone_orientation_quaternion[0] = msg.orientation.x
         self.drone_orientation_quaternion[1] = msg.orientation.y
         self.drone_orientation_quaternion[2] = msg.orientation.z
@@ -270,44 +364,153 @@ class Edrone():
         (self.drone_orientation_euler[1], self.drone_orientation_euler[0], self.drone_orientation_euler[2]) = tf.transformations.euler_from_quaternion(
             [self.drone_orientation_quaternion[0], self.drone_orientation_quaternion[1], self.drone_orientation_quaternion[2], self.drone_orientation_quaternion[3]])
 
-    # callback function for gps. This function gets executed each time when NavSatFix publishes /edrone/gps
-
+    
     def velocity_callback(self, msg):
+        '''
+        Purpose:
+        ---
+        Call back fuction for velocity
+
+        Input Arguments:
+        ---
+        self
+        msg : [dictionary]
+            contains the velocity by GPS
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.vleocity_callback
+        '''
         self.current_velocity[0] = msg.vector.x
         self.current_velocity[1] = -msg.vector.y
         self.current_velocity[2] = msg.vector.z
         # print(self.current_velocity)
 
-    # callback function for gps. This function gets executed each time when NavSatFix publishes /edrone/gps
-
+    
     def gps_callback(self, msg):
+        '''
+        Purpose:
+        ---
+        Call back fuction for gps data
+
+        Input Arguments:
+        ---
+        self
+        msg : [dictionary]
+            contains the gps coordinate publicshed by gps module
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.gps_callback
+        '''
         self.drone_location[0] = msg.latitude
         self.drone_location[1] = msg.longitude
         self.drone_location[2] = msg.altitude
 
-    # Callback function for /pid_tuning_roll, we used it to tune latitude
+
     def roll_set_pid(self, roll):
+        '''
+        Purpose:
+        ---
+        Call back fuction for roll_set_pid
+
+        Input Arguments:
+        ---
+        self
+        roll : [dictionary]
+            contains the marker data published by pid sliders
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.roll_set_pid
+        '''
         self.Kp_v[0] = roll.Kp * 0.001
         self.Ki_v[0] = roll.Ki * 0.0001
         self.Kd_v[0] = roll.Kd * 1
 
-    # Callback function for /pid_tuning_pitch, we used it to tune longitude
+
     def pitch_set_pid(self, pitch):
+        '''
+        Purpose:
+        ---
+        Call back fuction for Pitch_set_pid
+
+        Input Arguments:
+        ---
+        self
+        pitch : [dictionary]
+            contains the marker data published by pid silder
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.pitch_set_pid
+        '''
         self.Kp_v[1] = pitch.Kp * 0.001
         self.Ki_v[1] = pitch.Ki * 0.0001
         self.Kd_v[1] = pitch.Kd * 1
 
-    # Callback function for /pid_tuning_yaw, we used it to tune altitude
+
     def yaw_set_pid(self, yaw):
+        '''
+        Purpose:
+        ---
+        Call back fuction for yaw_set_pid
+
+        Input Arguments:
+        ---
+        self
+        yaw : [dictionary]
+            contains the marker data published by pid sliders
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.yaw_set_pid
+        '''
         self.Kp_v[2] = yaw.Kp * 1
         self.Ki_v[2] = yaw.Ki * 1
         self.Kd_v[2] = yaw.Kd * 1
 
-    # this function is containing all the pid equation to control the position of the drone
+
     def publish_data(self):
+        '''
+        Purpose:
+        ---
+        to publish all the publisher of the this node
+
+        Input Arguments:
+        ---
+        self
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        self.publish_data() , e_drone.publish_data()
+        '''
         # publishing rpyt_cmd to /drone_command
         self.rpyt_pub.publish(self.rpyt_cmd)
-
         # publishing different error values and tolerences
         self.latitude_error.publish(self.latitude_Error)
         self.longitude_error.publish(self.longitude_Error)
@@ -321,9 +524,30 @@ class Edrone():
         self.curr_marker_id.publish(self.current_marker_id)
         self.yaw_pub.publish(self.drone_orientation_euler[2])
 
-    # pid control loop for longitude, latitude and altitude
 
     def pid(self, position, speed):
+        '''
+        Purpose:
+        ---
+        The PID loop
+
+        Input Arguments:
+        ---
+        self
+        position : [bool]
+            true ---> position controller,  false --> velocity controller
+        speed : [flot]
+            maximum allowed speed
+
+        Returns:
+        ---
+        none
+
+        Example call:
+        ---
+        e_drone.pid(position=False, speed=100)
+        '''
+        
         # if position is true, the drone will be position controlled else vellocity controlled
         if(position):
             for i in range(3):
@@ -440,8 +664,27 @@ class Edrone():
         self.publish_data()
 
 
-# Function to call gripper service
 def gripper_active(state):
+    '''
+    Purpose:
+    ---
+    activate and deactivate the griper
+
+    Input Arguments:
+    ---
+    state : [bool]
+        ture --> the griper will be activated vice versa
+
+    Returns:
+    ---
+    resp : [bool]
+        responce by the groper node
+
+    Example call:
+    ---
+    gripper_active(1)
+    '''
+
     rospy.wait_for_service('/edrone/activate_gripper')
     try:
         gripper_state = rospy.ServiceProxy('/edrone/activate_gripper', Gripper)
@@ -454,8 +697,27 @@ def gripper_active(state):
         print("Service call failed: %s" % e)
 
 
-# Function to determine if the drone is at setpoint
 def is_at_setpoint3D(setpoint):
+    '''
+    Purpose:
+    ---
+    will tell if the drone is under the threshold at set point in all three directions
+
+    Input Arguments:
+    ---
+    setpoint : [list]
+        setpoint (destination)
+
+    Returns:
+    ---
+    return : [bool]
+        true --> withine threeshold or vice versa
+
+    Example call:
+    ---
+    is_at_setpoint3D(e_drone.setpoint)    
+    '''
+
     return ((e_drone.drone_location[0] > setpoint[0]+0.0000045173/3 or
              e_drone.drone_location[0] < setpoint[0]-0.0000045173/3) or
             (e_drone.drone_location[1] > setpoint[1]+0.0000047483/3 or
@@ -464,24 +726,88 @@ def is_at_setpoint3D(setpoint):
              e_drone.drone_location[2] < setpoint[2]-0.2))
 
 
-# Function to determine if the drone is at setpoint without taking into account the altitude
 def is_at_setpoint2D(setpoint):
+    '''
+    Purpose:
+    ---
+    will tell if the drone is under the threshold at set point in x, y direction (horizontal plane)
+
+    Input Arguments:
+    ---
+    setpoint : [list]
+        setpoint (destination)
+
+    Returns:
+    ---
+    return : [bool]
+        true --> withine threeshold or vice versa
+
+    Example call:
+    ---
+    is_at_setpoint2D(e_drone.setpoint)    
+    '''
+
     return ((e_drone.drone_location[0] > setpoint[0]+0.0000045173/5 or
              e_drone.drone_location[0] < setpoint[0]-0.0000045173/5) or
             (e_drone.drone_location[1] > setpoint[1]+0.0000047483/5 or
              e_drone.drone_location[1] < setpoint[1]-0.0000047483/5))
 
 
-# Function to avoid obstacles
 def stablize_drone(time_limit, position, speed):
+    '''
+    Purpose:
+    ---
+    to stablize the drone around a given point
+
+    Input Arguments:
+    ---
+    time_limit : [flot]
+        time upto whitch stablization performed
+
+    position : [bool]
+        true ---> position controller,  false --> velocity controller
+
+    speed : [flot]
+        maximum allowed speed
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    stablize_drone(time_limit = 10, position = False, speed = 100) 
+    '''
+
     t = time.time()
     while time.time() - t < time_limit:
         e_drone.pid(position=position, speed=speed)
         time.sleep(0.05)
 
 
-# function to avoid the obstacles dynamically
 def avoid_obstacle(position, speed):
+    '''
+    Purpose:
+    ---
+    to avoid the obsltracle (using modified bug algorithm)
+
+    Input Arguments:
+    ---
+    position : [bool]
+        true ---> position controller,  false --> velocity controller
+
+    speed : [flot]
+        maximum allowed speed
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    avoid_obstacle(position = False, speed = 100) 
+    '''
+
     print("obstacles")
     flag = 0
     m = 15
@@ -594,8 +920,28 @@ def avoid_obstacle(position, speed):
             time.sleep(0.05)
 
 
-# new way to avoid obstacles
 def avoid_obstacle_new(position, speed):
+    '''
+    Purpose:
+    ---
+    to avoid the obsltracle (rising the drone if obtracle)
+
+    Input Arguments:
+    ---
+    position : [bool]
+        true ---> position controller,  false --> velocity controller
+
+    speed : [flot]
+        maximum allowed speed
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    avoid_obstacle_new(position = False, speed = 100) 
+    '''
     flag2 = 0
     while((e_drone.laser_negative_latitude <= 4.3 and e_drone.laser_negative_latitude >= 0.5 or
            e_drone.laser_negative_longitude <= 4.3 and e_drone.laser_negative_longitude >= 0.5 or
@@ -643,8 +989,35 @@ def avoid_obstacle_new(position, speed):
                 e_drone.setpoint_location[1] = e_drone.setpoint_final[1]
 
 
-#  function to reach short distances
 def reach_short_destination(height_correction, position, speed, marker_detect):
+    '''
+    Purpose:
+    ---
+    to reaching shoet destinations
+
+    Input Arguments:
+    ---
+    height_correction : [flot]
+        amount of change in altitude(in meters) during the flights
+
+    position : [bool]
+        true ---> position controller,  false --> velocity controller
+
+    speed : [flot]
+        maximum allowed speed
+
+    marker_detect : [bool]
+        true --> detect the marker
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    reach_short_destination(height_correction = 5.0 , position = False, speed = 100, marker_detect = False) 
+    '''
+
     if(height_correction):
         if(e_drone.setpoint_final[2] + height_correction > e_drone.drone_location[2]):
             e_drone.setpoint_location = e_drone.setpoint_final[:-1] + [
@@ -672,8 +1045,38 @@ def reach_short_destination(height_correction, position, speed, marker_detect):
         time.sleep(0.03)
 
 
-# this function will take the drone to the set point
 def reach_destination(height_correction, hc, position, speed, delivery):
+    '''
+    Purpose:
+    ---
+    to reaching a given destination in a st. line 
+
+    Input Arguments:
+    ---
+    height_correction : [flot]
+        amount of change in altitude(in meters) before the flights
+
+    hc : [bool]
+        land or decent to given height at the end of flight
+
+    position : [bool]
+        true ---> position controller,  false --> velocity controller
+
+    speed : [flot]
+        maximum allowed speed
+
+    delivery : [bool]
+        true --> whether to deliver or not in the flight
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    reach_destination(height_correction = 5.0, hc = 0, position = False, speed = 100, delivery = True) 
+    '''
+
     if(not position):
         e_drone.setpoint_location = e_drone.drone_location[:-1] + [
             e_drone.drone_location[-1]+4]
@@ -780,8 +1183,26 @@ def reach_destination(height_correction, hc, position, speed, delivery):
             time.sleep(0.05)
 
 
-# Finds the nearest delivery/return
 def nearest(src):
+    '''
+    Purpose:
+    ---
+    to find the nearest packege from the drone
+
+    Input Arguments:
+    ---
+    src : [list]
+        ########################################### write here ############################################
+
+    Returns:
+    ---
+    ########################################### write here ############################################
+
+    Example call:
+    ---
+    nearest(src)
+    '''
+
     ans = ''
     a = 1000000000000
     for i in e_drone.return_location.keys():
@@ -797,8 +1218,25 @@ def nearest(src):
     return ans
 
 
-# Finds the farthest delivery/return
 def farthest():
+    '''
+    Purpose:
+    ---
+    to find the nearest packege from the drone
+
+    Input Arguments:
+    ---
+    none
+
+    Returns:
+    ---
+    ########################################### write here ############################################
+
+    Example call:
+    ---
+    farthest()
+    '''
+
     ans = ''
     a = 0
     for i in e_drone.delivery_location.keys():
@@ -813,8 +1251,25 @@ def farthest():
     return ans
 
 
-# Generate coded dictionary with locations
 def make_box_position():
+    '''
+    Purpose:
+    ---
+    ########################################### write here ############################################
+
+    Input Arguments:
+    ---
+    none
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    make_box_position()
+    '''
+
     for row in range(1, 4):
         for column in range(1, 4):
             i = str(chr(ord('A')+column-1)+str(row))
@@ -837,16 +1292,50 @@ def make_box_position():
                 e_drone.patch[i][2] = e_drone.patch["X1"][2]
 
 
-# Scheduling algo to determine order of delivery
 def determine_order():
+    '''
+    Purpose:
+    ---
+    ########################################### write here ############################################
+
+    Input Arguments:
+    ---
+    none
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    determine_order()
+    '''
+
     for _ in range(9):
         e_drone.order.append(farthest())
         e_drone.order.append(
             nearest(e_drone.delivery_location[e_drone.order[-1]]))
 
 
-# to land the drone
 def hover():
+    '''
+    Purpose:
+    ---
+    to hover at a stanging position
+
+    Input Arguments:
+    ---
+    none
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    hover()
+    '''
+
     # To land the drone on marker
     t = time.time()
     while time.time() - t < 0.5:
@@ -857,6 +1346,24 @@ def hover():
 
 
 def marker_detection():
+    '''
+    Purpose:
+    ---
+    function to detect the marker
+
+    Input Arguments:
+    ---
+    none
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    marker_detection()
+    '''
+
     rospy.loginfo("Initiating marker detection")
     count = 0
     count2 = 1
@@ -898,15 +1405,49 @@ def marker_detection():
 
 
 def generate_csv():
-   # print("generate")
+    '''
+    Purpose:
+    ---
+    to genrate the sequenced_manifest.csv file 
+
+    Input Arguments:
+    ---
+    none
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    generate_csv()
+    '''
+
+    # print("generate")
     with open('sequenced_manifest.csv', 'w') as file:
         writer = csv.writer(file)
         writer.writerows(e_drone.csvrow)
 
-# main function, it will move the drone at all three points to reach the destination.
-
 
 def main():
+    '''
+    Purpose:
+    ---
+    main function, all the task to be performed is written bellow 
+
+    Input Arguments:
+    ---
+    none
+
+    Returns:
+    ---
+    none
+
+    Example call:
+    ---
+    main()
+    '''
+
     make_box_position()
     determine_order()
     # box_id = 1
