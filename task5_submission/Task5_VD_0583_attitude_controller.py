@@ -3,7 +3,7 @@
 '''
 # Team ID:          0583
 # Theme:            VD
-# Author List:      Purushotam kumar Agrawal, Mehul Singhal, Anurag Gupta, Abhishek Pathak
+# Author List:      Purushotam kumar Agrawal, Mehul Singhal, Anurag Gupta, Abhishek Kumar Pathak
 # Filename:         AttitudeController5 
 # Functions:        class Edrone()
 # Global variables: none
@@ -100,11 +100,10 @@ class Edrone():
         # Subscribing to /drone_command, imu/data, /pid_tuning_roll, /pid_tuning_pitch, /pid_tuning_yaw
         rospy.Subscriber('/drone_command', edrone_cmd, self.drone_command_callback)
         rospy.Subscriber('/edrone/imu/data', Imu, self.imu_callback)
-        # rospy.Subscriber('/pid_tuning_roll', PidTune, self.roll_set_pid)
-        # rospy.Subscriber('/pid_tuning_pitch', PidTune, self.pitch_set_pid)
-        # rospy.Subscriber('/pid_tuning_yaw', PidTune, self.yaw_set_pid)
 
 
+
+    # Imu callback function. The function gets executed each time when imu publishes /edrone/imu/data
     def imu_callback(self, msg):
         '''
         Purpose:
@@ -131,7 +130,8 @@ class Edrone():
         self.drone_orientation_quaternion[2] = msg.orientation.z
         self.drone_orientation_quaternion[3] = msg.orientation.w
 
-    
+     
+    # drone cmd callback function. The function gets executed each time when edrone_cmd publishes /drone_command
     def drone_command_callback(self, msg):
         '''
         Purpose:
@@ -159,6 +159,7 @@ class Edrone():
         self.set_throttle = msg.rcThrottle
 
 
+    # Callback function for /pid_tuning_roll. This function gets executed each time when /tune_pid publishes /pid_tuning_roll
     def roll_set_pid(self, roll):
         '''
         Purpose:
@@ -185,6 +186,7 @@ class Edrone():
         self.Kd[0] = roll.Kd * 0.3
 
 
+    # Callback function for /pid_tuning_pitch. This function gets executed each time when /tune_pid publishes /pid_tuning_pitch
     def pitch_set_pid(self, pitch):
         '''
         Purpose:
@@ -211,6 +213,7 @@ class Edrone():
         self.Kd[1] = pitch.Kd * 0.3
 
 
+    # Callback function for /pid_tuning_yaw. This function gets executed each time when /tune_pid publishes /pid_tuning_yaw
     def yaw_set_pid(self, yaw):
         '''
         Purpose:
@@ -237,6 +240,7 @@ class Edrone():
         self.Kd[2] = yaw.Kd * 3
     
 
+    # this function is containing all the pid equation to control the attitude of the drone
     def pid(self):
         '''
         Purpose:
@@ -255,7 +259,7 @@ class Edrone():
         ---
         e_drone.pid()
         '''
-
+        
         # converting the current orientations from quaternion to euler angles 
         (self.drone_orientation_euler[1], self.drone_orientation_euler[0], self.drone_orientation_euler[2]) = tf.transformations.euler_from_quaternion([self.drone_orientation_quaternion[0], self.drone_orientation_quaternion[1], self.drone_orientation_quaternion[2], self.drone_orientation_quaternion[3]])
         
@@ -336,7 +340,7 @@ if __name__ == '__main__':
 
     # pause of 5 sec to open and load the gazibo
     t = time.time()
-    while time.time() -t < 2:
+    while time.time() -t < 5:
         pass
 
     e_drone = Edrone()
