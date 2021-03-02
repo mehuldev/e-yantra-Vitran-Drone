@@ -90,7 +90,6 @@ class Edrone():
         # This will contain the current orientation of eDrone converted in euler angles form. [r,p,y]
         self.drone_orientation_euler = [0.0, 0.0, 0.0]
 
-        # ////////////////////////////////////////////////////////////////////////////
         # To store values of LIDAR
         self.laser_negative_latitude = 0
         self.laser_positive_longitude = 0
@@ -136,7 +135,6 @@ class Edrone():
         # Declaring maximum and minimum values for roll, pitch, yaw, throttle output.
         self.max_values = [2000.0, 2000.0, 2000.0, 2000.0]
         self.min_values = [1000.0, 1000.0, 1000.0, 1000.0]
-        # /////////////////////////////////////////////////////////////////////////
 
         # initializing Kp, Kd and ki for position [latitude, longitude, altitude] after tunning
         self.Kp_p = [1080000, 1140000, 48]
@@ -332,10 +330,10 @@ class Edrone():
 
         self.centre_x = self.drone_location[0] + \
             marker_data.err_x_m*0.0000045173*2
-        # self.centre_x = self.drone_location[0] + self.centre_x
+
         self.centre_y = self.drone_location[1] - \
             marker_data.err_y_m*0.0000047483*2
-        # self.centre_y = self.drone_location[1] - self.centre_y
+
 
     
 
@@ -1212,7 +1210,6 @@ def nearest(src):
     Input Arguments:
     ---
     src : [list]
-        ########################################### write here ############################################
 
     Returns:
     ---
